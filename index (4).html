@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zombie Game</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        
+        const character = {
+            x: 50,
+            y: 50,
+            width: 20,
+            height: 20,
+            speed: 5,
+        };
+        
+        const bullets = [];
+        const zombies = [];
+        let gameOver = false;
+        
+        function drawCharacter() {
+            ctx.fillStyle = "blue";
+            ctx.fillRect(character.x, character.y, character.width, character.height);
+        }
+        
+        function drawBullets() {
+            ctx.fillStyle = "red";
+            for (let bullet of bullets) {
+                ctx.fillRect(bullet.x, bullet.y, 5, 5);
+            }
+        }
+        
+        function drawZombies() {
+            ctx.fillStyle = "green";
+            for (let zombie of zombies) {
+                ctx.fillRect(zombie.x, zombie.y, 20, 20);
+            }
+        }
+        
+        function createZombie() {
+            const zombie = {
+                x: canvas.width,
+                y: Math.random() * canvas.height,
+                speed: 1 + Math.random() * 2, // Random speed between 1 and 3
+            };
+            zombies.push(zombie);
+        }
+        
+        function update() {
+            if (gameOver) {
+                return; // Stop updating if the game is over
+            }
+            
+            if (bullets.length > 0) {
+                for (let i = bullets.length - 1; i >= 0; i--) {
+                    bullets[i].x += 5;
+                    if (bullets[i].x > canvas.width) {
+                        bullets.splice(i, 1);
+                    }
+                }
+            }
+            
+            for (let i = zombies.length - 1; i >= 0; i--) {
+                const zombie = zombies[i];
+                // Move zombies towards the player
+                if (character.x < zombie.x) {
+                    zombie.x -= zombie.speed;
+                }
+                if (character.x > zombie.x) {
+                    zombie.x += zombie.speed;
+                }
+                if (character.y < zombie.y) {
+                    zombie.y -= zombie.speed;
+                }
+                if (character.y > zombie.y) {
+                    zombie.y += zombie.speed;
+                }
+                if (zombie.x < 0) {
+                    zombies.splice(i, 1);
+                }
+            }
+            
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                for (let j = zombies.length - 1; j >= 0; j--) {
+                    const bullet = bullets[i];
+                    const zombie = zombies[j];
+                    
+                    if (
+                        bullet.x < zombie.x + 20 &&
+                        bullet.x + 5 > zombie.x &&
+                        bullet.y < zombie.y + 20 &&
+                        bullet.y + 5 > zombie.y
+                    ) {
+                        // Zombie hit by a bullet - remove both
+                        bullets.splice(i, 1);
+                        zombies.splice(j, 1);
+                        break; // Exit inner loop, as one bullet can hit one zombie at a time
+                    }
+                }
+            }
+            
+            if (Math.random() < 0.02 && zombies.length < 5) {
+                createZombie();
+            }
+            
+            // Check for collision with the player
+            for (let zombie of zombies) {
+                if (
+                    character.x < zombie.x + 20 &&
+                    character.x + character.width > zombie.x &&
+                    character.y < zombie.y + 20 &&
+                    character.y + character.height > zombie.y
+                ) {
+                    // Player collided with a zombie - game over
+                    gameOver = true;
+                    clearInterval(gameInterval);
+                    alert("Game over!");
+                }
+            }
+        }
+        
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        function gameLoop() {
+            clearCanvas();
+            drawCharacter();
+            drawBullets();
+            drawZombies();
+            update();
+        }
+        
+        let gameInterval = setInterval(gameLoop, 1000 / 60);
+        
+        document.addEventListener("keydown", (event) => {
+            if (gameOver) {
+                return; // Ignore key inputs if the game is over
+            }
+            
+            switch (event.key) {
+                case "ArrowUp":
+                    if (character.y > 0) character.y -= character.speed;
+                    break;
+                case "ArrowDown":
+                    if (character.y < canvas.height - character.height) character.y += character.speed;
+                    break;
+                case "ArrowLeft":
+                    if (character.x > 0) character.x -= character.speed;
+                    break;
+                case "ArrowRight":
+                    if (character.x < canvas.width - character.width) character.x += character.speed;
+                    break;
+                case " ": // Spacebar to shoot
+                    bullets.push({ x: character.x + character.width, y: character.y + character.height / 2 });
+                    break;
+            }
+        });
+    </script>
+</body>
+</html>
